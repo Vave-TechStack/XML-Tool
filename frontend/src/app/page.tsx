@@ -1,234 +1,137 @@
 'use client';
 
+import ToolCard from '@/components/ToolCard';
+import { useAuthStore } from '@/store/authStore';
+import { 
+  FileText, FileCode2, Scissors, Image as ImageIcon,
+  BookOpen, Eye, SearchCode, Braces, ArrowRight
+} from 'lucide-react';
+import Link from 'next/link';
+import { useEffect } from 'react';
+
 export default function HomePage() {
+  const { user, checkAuth } = useAuthStore();
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const tools = [
+    {
+      title: 'PDF to XML (JATS/BITS)',
+      description: 'Intelligent extraction of structural data for publishers and journals to standard XML formats.',
+      href: '/pdf-to-xml',
+      icon: Braces,
+      colorClass: 'text-amber-600',
+      bgClass: 'bg-amber-100',
+    },
+    {
+      title: 'PDF to Word (DOCX)',
+      description: 'Convert complex PDF layouts back to editable Word format with high accuracy.',
+      href: '/pdf-to-word',
+      icon: FileText,
+      colorClass: 'text-blue-600',
+      bgClass: 'bg-blue-100',
+    },
+    {
+      title: 'Split PDF',
+      description: 'Separate one page or a whole set for easy modular conversion and processing.',
+      href: '/pdf-split',
+      icon: Scissors,
+      colorClass: 'text-rose-600',
+      bgClass: 'bg-rose-100',
+    },
+    {
+      title: 'PDF to High-Res TIFF',
+      description: 'Perfect for printing protocols and archiving. Convert PDF pages to rich TIFF images.',
+      href: '/pdf-to-tiff',
+      icon: ImageIcon,
+      colorClass: 'text-emerald-600',
+      bgClass: 'bg-emerald-100',
+    },
+    {
+      title: 'Advanced OCR Pipeline',
+      description: 'Extract raw text, layouts, and bold/italic elements natively from scanned document pages.',
+      href: '/ocr',
+      icon: SearchCode,
+      colorClass: 'text-purple-600',
+      bgClass: 'bg-purple-100',
+    },
+    {
+      title: 'EPUB3 Generator',
+      description: 'Build robust, accessible EPUB3 files perfectly structured for modern e-readers.',
+      href: '/epub3',
+      icon: BookOpen,
+      colorClass: 'text-sky-600',
+      bgClass: 'bg-sky-100',
+    },
+    {
+      title: 'Legacy EPUB2',
+      description: 'Maintain backwards compatibility with older devices. Convert directly to EPUB2 format.',
+      href: '/epub2',
+      icon: BookOpen,
+      colorClass: 'text-slate-600',
+      bgClass: 'bg-slate-200',
+    },
+    {
+      title: 'Live XML Editor',
+      description: 'Feature-rich browser-based CodeMirror editor to tweak and validate JATS/BITS XML output.',
+      href: '/xml-editor',
+      icon: FileCode2,
+      colorClass: 'text-orange-600',
+      bgClass: 'bg-orange-100',
+    }
+  ];
+
   return (
-    <div style={styles.container}>
-
-      {/* ================= HERO ================= */}
-      <section style={styles.hero}>
-        <h1 style={styles.heroTitle}>
-          One Platform for All PDF Conversion Needs
-        </h1>
-
-        <p style={styles.heroSub}>
-          XML Tools helps publishers, accessibility vendors, and enterprises
-          convert PDFs into XML, EPUB, Word, and Images using industry-standard
-          workflows.
-        </p>
-
-        <div style={styles.heroButtons}>
-          <button style={styles.primaryBtn}>Upload PDF</button>
-          <button style={styles.secondaryBtn}>Explore Tools</button>
-        </div>
-      </section>
-
-      {/* ================= PLATFORM INTRO ================= */}
-      <section style={styles.introSection}>
-        <h2 style={styles.sectionTitle}>Why XML Tools?</h2>
-        <p style={styles.introText}>
-          Modern publishing requires more than simple PDF conversion.
-          XML Tools provides structured, scalable, and standards-compliant
-          conversion pipelines suitable for journals, books, and accessibility
-          workflows.
-        </p>
-      </section>
-
-      {/* ================= TOOLS ================= */}
-      <section style={styles.toolsSection}>
-        <h2 style={styles.sectionTitle}>Our Conversion Tools</h2>
-
-        <div style={styles.toolsGrid}>
-          {tools.map((tool, index) => (
-            <div key={index} style={styles.toolCard}>
-              <h3 style={styles.toolTitle}>{tool.title}</h3>
-              <p style={styles.toolDesc}>{tool.desc}</p>
+    <div className="min-h-screen bg-[#fafafa] font-sans">
+      
+      {/* ----------------- Hero Section ----------------- */}
+      <section className="bg-slate-900 text-white pt-24 pb-32 px-6 text-center relative overflow-hidden">
+        {/* Subtle decorative background blur */}
+        <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-sky-500/20 blur-[120px] rounded-full pointer-events-none" />
+        
+        <div className="max-w-4xl mx-auto relative z-10">
+          <div className="mb-6 flex justify-center">
+            <span className="bg-sky-500/10 text-sky-400 border border-sky-500/20 px-4 py-1.5 rounded-full text-sm font-semibold tracking-wide">
+              BLACK VAVE EXCLUSIVE
+            </span>
+          </div>
+          
+          <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight mb-6 leading-tight">
+            Every publisher tool <br className="hidden md:block"/> you need in one place.
+          </h1>
+          
+          <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed">
+            The ultimate conversion suite spanning XML compilation, layout analysis, and semantic EPUB building. Unmatched speed, absolute precision.
+          </p>
+          
+          {!user && (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/login" className="bg-sky-500 hover:bg-sky-400 text-slate-900 font-bold py-3.5 px-8 rounded-xl transition-all shadow-[0_0_20px_rgba(14,165,233,0.3)] flex items-center justify-center gap-2">
+                Sign In to Access Tools <ArrowRight className="h-5 w-5" />
+              </Link>
             </div>
-          ))}
+          )}
         </div>
       </section>
 
-      {/* ================= USE CASES ================= */}
-      <section style={styles.useCaseSection}>
-        <h2 style={styles.sectionTitle}>Who Is This For?</h2>
-
-        <div style={styles.useCaseGrid}>
-          <div style={styles.useCaseCard}>📘 Publishers & Journals</div>
-          <div style={styles.useCaseCard}>♿ Accessibility Vendors</div>
-          <div style={styles.useCaseCard}>🏢 Enterprises & Archives</div>
-          <div style={styles.useCaseCard}>📚 E-Book Creators</div>
+      {/* ----------------- Tools Grid ----------------- */}
+      <section className="px-6 pb-24 -mt-16 relative z-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {tools.map((tool, idx) => (
+              <ToolCard key={idx} {...tool} />
+            ))}
+          </div>
         </div>
       </section>
-
-      {/* ================= FOOTER ================= */}
-      <footer style={styles.footer}>
-        <p>© {new Date().getFullYear()} XML Tools. All rights reserved.</p>
+      
+      {/* ----------------- Footer ----------------- */}
+      <footer className="bg-slate-50 border-t border-slate-200 py-12 text-center text-slate-500">
+        <p className="font-medium">© {new Date().getFullYear()} Black Vave Publisher Tools. Professional Use Only.</p>
       </footer>
+
     </div>
   );
 }
-
-/* ================= DATA ================= */
-
-const tools = [
-  {
-    title: 'PDF to XML',
-    desc: 'Convert PDFs into structured JATS, BITS, LN or custom XML formats suitable for publishing workflows.',
-  },
-  {
-    title: 'PDF to Word',
-    desc: 'Generate editable DOCX files while preserving layout and content accuracy.',
-  },
-  {
-    title: 'OCR Processing',
-    desc: 'Extract text from scanned PDFs using advanced OCR pipelines.',
-  },
-  {
-    title: 'PDF to TIFF',
-    desc: 'Convert PDF pages into high-resolution TIFF images for print and archival use.',
-  },
-  {
-    title: 'PDF Splitter',
-    desc: 'Split PDFs by pages, ranges, or chapters for modular processing.',
-  },
-  {
-    title: 'EPUB2 Creation',
-    desc: 'Create EPUB2 files compatible with legacy e-readers.',
-  },
-  {
-    title: 'EPUB3 Creation',
-    desc: 'Generate modern EPUB3 files with semantic structure and accessibility support.',
-  },
-];
-
-/* ================= STYLES ================= */
-
-const styles: any = {
-  container: {
-    fontFamily: 'Arial, sans-serif',
-    background: '#f9fafb',
-    minHeight: '100vh',
-  },
-
-  hero: {
-    textAlign: 'center',
-    padding: '90px 20px',
-    background: 'linear-gradient(135deg, #020617, #0f172a)',
-    color: '#fff',
-  },
-
-  heroTitle: {
-    fontSize: '44px',
-    maxWidth: '900px',
-    margin: '0 auto',
-  },
-
-  heroSub: {
-    marginTop: '20px',
-    fontSize: '18px',
-    color: '#cbd5f5',
-    maxWidth: '800px',
-    marginInline: 'auto',
-  },
-
-  heroButtons: {
-    marginTop: '35px',
-    display: 'flex',
-    justifyContent: 'center',
-    gap: '16px',
-  },
-
-  primaryBtn: {
-    background: '#38bdf8',
-    color: '#000',
-    padding: '14px 26px',
-    borderRadius: '8px',
-    border: 'none',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-  },
-
-  secondaryBtn: {
-    background: 'transparent',
-    color: '#fff',
-    padding: '14px 26px',
-    borderRadius: '8px',
-    border: '1px solid #38bdf8',
-    cursor: 'pointer',
-  },
-
-  introSection: {
-    padding: '70px 30px',
-    textAlign: 'center',
-    background: '#ffffff',
-  },
-
-  introText: {
-    maxWidth: '850px',
-    margin: '0 auto',
-    fontSize: '17px',
-    color: '#334155',
-  },
-
-  toolsSection: {
-    padding: '70px 40px',
-  },
-
-  sectionTitle: {
-    textAlign: 'center',
-    fontSize: '30px',
-    marginBottom: '45px',
-  },
-
-  toolsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
-    gap: '24px',
-  },
-
-  toolCard: {
-    background: '#fff',
-    padding: '24px',
-    borderRadius: '14px',
-    boxShadow: '0 10px 25px rgba(0,0,0,0.08)',
-  },
-
-  toolTitle: {
-    marginBottom: '10px',
-    color: '#020617',
-  },
-
-  toolDesc: {
-    color: '#475569',
-    fontSize: '14px',
-    lineHeight: 1.6,
-  },
-
-  useCaseSection: {
-    padding: '70px 40px',
-    background: '#f1f5f9',
-  },
-
-  useCaseGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-    gap: '20px',
-    maxWidth: '1000px',
-    margin: '0 auto',
-  },
-
-  useCaseCard: {
-    background: '#fff',
-    padding: '22px',
-    textAlign: 'center',
-    borderRadius: '12px',
-    fontWeight: 'bold',
-    boxShadow: '0 6px 16px rgba(0,0,0,0.08)',
-  },
-
-  footer: {
-    textAlign: 'center',
-    padding: '22px',
-    background: '#020617',
-    color: '#94a3b8',
-  },
-};

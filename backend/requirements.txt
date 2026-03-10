@@ -59,6 +59,13 @@ anyio==4.3.0
 typing-extensions==4.11.0
 
 # =================================================
+# Database & Authentication
+# =================================================
+SQLAlchemy>=2.0.29
+bcrypt>=4.1.2
+PyJWT>=2.8.0
+
+# =================================================
 # Optional (Recommended for XML accuracy)
 # =================================================
 rapidfuzz==3.6.2             # fuzzy matching (footnotes refs)
