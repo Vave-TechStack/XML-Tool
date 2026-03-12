@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import { customFetch } from '@/utils/customFetch';
 
 export default function PdfSplitPage() {
+
   const [file, setFile] = useState<File | null>(null);
   const [ranges, setRanges] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,6 +20,7 @@ export default function PdfSplitPage() {
   // START SPLIT
   // =============================
   const splitPdf = async () => {
+
     if (!file || !ranges) {
       alert('Upload PDF and enter page ranges');
       return;
@@ -30,27 +32,39 @@ export default function PdfSplitPage() {
     setJobId(null);
 
     try {
+
       const formData = new FormData();
       formData.append('file', file);
       formData.append('ranges', ranges);
 
-      const res = await customFetch('http://127.0.0.1:8000/pdf-split', {
-        method: 'POST',
-        body: formData,
-      });
+      const res = await customFetch(
+        'http://127.0.0.1:8000/pdf/split-range',
+        {
+          method: 'POST',
+          body: formData,
+        }
+      );
 
       if (!res.ok) {
         throw new Error('Split failed');
       }
 
       const data = await res.json();
+
       const jid = data.job_id;
 
       setJobId(jid);
+
+      setDownloadUrl(
+        `http://127.0.0.1:8000/pdf/split/download/${jid}`
+      );
+
       listenProgress(jid);
-      setDownloadUrl(`http://127.0.0.1:8000/download-split/${jid}`);
+
     } catch (e) {
+
       alert('PDF split failed');
+
       setLoading(false);
     }
   };
@@ -59,34 +73,42 @@ export default function PdfSplitPage() {
   // SSE PROGRESS LISTENER
   // =============================
   const listenProgress = (jid: string) => {
+
     const es = new EventSource(
-      `http://127.0.0.1:8000/events/pdf-split-progress/${jid}`
+      `http://127.0.0.1:8000/pdf/split/progress/${jid}`
     );
 
     eventSourceRef.current = es;
 
     es.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      setProgress(data.progress);
 
-      if (data.progress >= 100) {
+      const value = Number(e.data);
+
+      setProgress(value);
+
+      if (value >= 100) {
+
         es.close();
+
         setLoading(false);
       }
     };
 
     es.onerror = () => {
+
       es.close();
+
       setLoading(false);
     };
   };
 
   // =============================
-  // AFTER DOWNLOAD (RESET UI)
+  // AFTER DOWNLOAD RESET
   // =============================
-  const handleDownloadClick = async () => {
-    // Small delay to allow browser download start
+  const handleDownloadClick = () => {
+
     setTimeout(() => {
+
       setFile(null);
       setRanges('');
       setProgress(0);
@@ -101,46 +123,60 @@ export default function PdfSplitPage() {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
+
     }, 1000);
   };
 
   return (
     <div style={styles.page}>
+
       <h2 style={styles.title}>PDF Split by Page Range</h2>
 
       <p style={styles.subtitle}>
-        Enter page ranges like <b>1-10, 11-25, 30</b>.  
+        Enter page ranges like <b>1-10, 11-25, 30</b>.
         Each range will be split and downloaded as a ZIP.
       </p>
 
       {/* Upload */}
+
       <label style={styles.uploadBox}>
+
         <input
           ref={fileRef}
           type="file"
           accept="application/pdf"
           hidden
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          onChange={(e) =>
+            setFile(e.target.files?.[0] || null)
+          }
         />
+
         {!file ? (
           <>
             <div style={styles.uploadIcon}>📄</div>
-            <p style={styles.uploadText}>Click to upload PDF</p>
+            <p style={styles.uploadText}>
+              Click to upload PDF
+            </p>
           </>
         ) : (
           <strong>{file.name}</strong>
         )}
+
       </label>
 
       {/* Ranges */}
+
       <input
         style={styles.input}
         placeholder="Page ranges (e.g. 1-10,11-25,30)"
         value={ranges}
-        onChange={(e) => setRanges(e.target.value)}
+        onChange={(e) =>
+          setRanges(e.target.value)
+        }
       />
 
       {/* Button */}
+
       <button
         onClick={splitPdf}
         disabled={loading}
@@ -152,10 +188,15 @@ export default function PdfSplitPage() {
         {loading ? 'Splitting…' : 'Split PDF'}
       </button>
 
-      {/* Progress Bar */}
+      {/* Progress */}
+
       {loading && (
         <div style={styles.progressWrap}>
-          <div style={styles.progressLabel}>{progress}%</div>
+
+          <div style={styles.progressLabel}>
+            {progress}%
+          </div>
+
           <div style={styles.progressBar}>
             <div
               style={{
@@ -164,12 +205,15 @@ export default function PdfSplitPage() {
               }}
             />
           </div>
+
         </div>
       )}
 
       {/* Download */}
+
       {downloadUrl && progress === 100 && (
         <div style={styles.downloadBox}>
+
           <a
             href={downloadUrl}
             onClick={handleDownloadClick}
@@ -177,22 +221,26 @@ export default function PdfSplitPage() {
           >
             Download Split PDFs (ZIP)
           </a>
+
         </div>
       )}
+
     </div>
   );
 }
 
+
 /* ================= STYLES ================= */
 
 const styles: any = {
+
   page: {
     maxWidth: '760px',
     margin: '50px auto',
     padding: '42px',
     background: '#ffffff',
     borderRadius: '18px',
-    boxShadow: '0 15px 40px rgba(2, 6, 23, 0.12)',
+    boxShadow: '0 15px 40px rgba(2,6,23,0.12)',
     textAlign: 'center',
   },
 
@@ -271,7 +319,8 @@ const styles: any = {
 
   progressFill: {
     height: '100%',
-    background: 'linear-gradient(90deg, #38bdf8, #0ea5e9)',
+    background:
+      'linear-gradient(90deg,#38bdf8,#0ea5e9)',
     transition: 'width 0.3s ease',
   },
 

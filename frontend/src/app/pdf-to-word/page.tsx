@@ -1,7 +1,7 @@
 'use client';
 import { customFetch } from '@/utils/customFetch';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 
 export default function PdfToWordPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -18,6 +18,10 @@ export default function PdfToWordPage() {
     }
 
     setLoading(true);
+    // Revoke previous URL if it exists to prevent memory leaks
+    if (downloadUrl) {
+      window.URL.revokeObjectURL(downloadUrl);
+    }
     setDownloadUrl('');
 
     try {
@@ -47,6 +51,15 @@ export default function PdfToWordPage() {
       setLoading(false);
     }
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (downloadUrl) {
+        window.URL.revokeObjectURL(downloadUrl);
+      }
+    };
+  }, [downloadUrl]);
 
   /* ================= RESET AFTER DOWNLOAD ================= */
   const resetUpload = () => {
@@ -123,7 +136,6 @@ export default function PdfToWordPage() {
             href={downloadUrl}
             download={file ? file.name.replace('.pdf', '.docx').replace('.PDF', '.docx') : 'converted.docx'}
             style={styles.downloadLink}
-            onClick={resetUpload}
           >
             Download Word File
           </a>

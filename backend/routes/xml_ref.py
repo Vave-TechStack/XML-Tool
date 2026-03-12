@@ -6,6 +6,8 @@ from services.docx_parser import extract_references
 from services.ref_parser import parse_reference
 from services.xml_refbuilder import build_ref_list_xml
 from services.cleanup import schedule_cleanup
+from services.head_tail_parser import extract_head_tail_data
+from services.head_tail_xml_builder import build_head_tail_xml
 
 xml_ref_router = APIRouter()
 
@@ -46,6 +48,43 @@ async def upload_docx(
     return {
         "xml_file": xml_path,
         "ref_count": len(parsed_refs)
+    }
+
+
+@xml_ref_router.post("/head-tail")
+async def process_head_tail(
+    file: UploadFile = File(...),
+    background_tasks: BackgroundTasks = BackgroundTasks()
+):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files allowed for Head and Tail")
+
+    uid = str(uuid.uuid4())
+    upload_path = f"{UPLOAD_DIR}/{uid}.pdf"
+
+    with open(upload_path, "wb") as f:
+        f.write(await file.read())
+
+    try:
+        # 1. Extract and Parse with Style Awareness
+        parsed_data = extract_head_tail_data(upload_path)
+        
+        if not parsed_data:
+            raise HTTPException(status_code=400, detail="No bibliography items found in PDF")
+
+        # 2. Build Structured Elsevier XML
+        xml_path = build_head_tail_xml(parsed_data, uid)
+        
+    finally:
+        # Cleanup uploaded PDF immediately
+        if os.path.exists(upload_path):
+            os.remove(upload_path)
+
+    background_tasks.add_task(schedule_cleanup, xml_path, 1800)
+
+    return {
+        "xml_file": xml_path,
+        "ref_count": len(parsed_data)
     }
 
 

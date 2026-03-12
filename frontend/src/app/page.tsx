@@ -4,7 +4,7 @@ import ToolCard from '@/components/ToolCard';
 import { useAuthStore } from '@/store/authStore';
 import { 
   FileText, FileCode2, Scissors, Image as ImageIcon,
-  BookOpen, Eye, SearchCode, Braces, ArrowRight
+  BookOpen, Eye, SearchCode, Braces, ArrowRight, Database
 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect } from 'react';
@@ -80,6 +80,14 @@ export default function HomePage() {
       icon: FileCode2,
       colorClass: 'text-orange-600',
       bgClass: 'bg-orange-100',
+    },
+    {
+      title: 'XML Ref',
+      description: 'Extract and format document references into structured XML tags.',
+      href: '/xml-ref',
+      icon: Database,
+      colorClass: 'text-indigo-600',
+      bgClass: 'bg-indigo-100',
     }
   ];
 

@@ -1,200 +1,269 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from pypdf import PdfReader, PdfWriter
-import os, uuid, zipfile, time, shutil, threading, asyncio, json
+import uuid
+import os
+import time
+import threading
+import shutil
+import zipfile
 
 router = APIRouter()
 
-# ===============================
-# PATHS
-# ===============================
-UPLOAD_DIR = "uploads"
-OUTPUT_DIR = "outputs"
-
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
+# ================= CONFIG =================
+BASE_TMP = "tmp/jobs"
 TTL_SECONDS = 30 * 60  # 30 minutes
 
-# ===============================
-# IN-MEMORY STORES
-# ===============================
-progress_store = {}      # job_id -> progress (0–100)
-job_created_at = {}      # job_id -> timestamp
-job_status = {}          # job_id -> processing | completed
+os.makedirs(BASE_TMP, exist_ok=True)
+
+progress_map = {}
+job_created_at = {}
+
+# ================= CLEANUP THREAD =================
+def cleanup_worker():
+    while True:
+        try:
+            now = time.time()
+
+            for job_id in list(job_created_at.keys()):
+
+                if now - job_created_at[job_id] > TTL_SECONDS:
+
+                    job_dir = os.path.join(BASE_TMP, job_id)
+
+                    if os.path.exists(job_dir):
+                        shutil.rmtree(job_dir, ignore_errors=True)
+                        print(f"🧹 TTL cleanup: {job_id}")
+
+                    progress_map.pop(job_id, None)
+                    job_created_at.pop(job_id, None)
+
+        except Exception as e:
+            print("Cleanup error:", e)
+
+        time.sleep(60)
 
 
-# ===============================
-# RANGE PARSER
-# ===============================
-def parse_ranges(ranges: str):
-    result = []
-    for part in ranges.split(","):
+threading.Thread(target=cleanup_worker, daemon=True).start()
+
+# ================= RANGE PARSER =================
+def parse_ranges(ranges_str: str, total_pages: int):
+
+    ranges = []
+
+    parts = ranges_str.split(",")
+
+    for part in parts:
+
         part = part.strip()
+
         if "-" in part:
-            a, b = part.split("-")
-            result.append((int(a), int(b)))
+            s, e = part.split("-")
+            s = int(s.strip())
+            e = int(e.strip())
         else:
-            p = int(part)
-            result.append((p, p))
-    return result
+            s = int(part)
+            e = s
+
+        if s < 1 or e < 1 or s > e or e > total_pages:
+            raise ValueError(
+                f"Invalid range {s}-{e}. PDF has {total_pages} pages"
+            )
+
+        ranges.append((s, e))
+
+    if not ranges:
+        raise ValueError("No valid ranges provided")
+
+    return ranges
 
 
-# ===============================
-# BACKGROUND SPLIT WORKER
-# ===============================
-def split_worker(job_id: str, pdf_path: str, ranges: str):
+# ================= SPLIT JOB =================
+def split_pdf_job(job_id, pdf_path, ranges):
+
     try:
-        progress_store[job_id] = 5
 
-        out_dir = os.path.join(OUTPUT_DIR, f"{job_id}_split")
-        zip_path = os.path.join(OUTPUT_DIR, f"{job_id}_split.zip")
-        os.makedirs(out_dir, exist_ok=True)
+        progress_map[job_id] = 5
+
+        reader = PdfReader(pdf_path)
+
+        job_dir = os.path.join(BASE_TMP, job_id)
+        parts_dir = os.path.join(job_dir, "parts")
+
+        os.makedirs(parts_dir, exist_ok=True)
+
+        total_parts = len(ranges)
+
+        # ---- SPLIT PDF ----
+        for idx, (start, end) in enumerate(ranges):
+
+            writer = PdfWriter()
+
+            for p in range(start - 1, end):
+                writer.add_page(reader.pages[p])
+
+            part_path = os.path.join(parts_dir, f"part_{idx+1:02d}.pdf")
+
+            with open(part_path, "wb") as f:
+                writer.write(f)
+
+            progress_map[job_id] = int(((idx + 1) / total_parts) * 90)
+
+        # ---- ZIP CREATION ----
+        zip_path = os.path.join(job_dir, "output.zip")
+
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+
+            for f in sorted(os.listdir(parts_dir)):
+
+                zipf.write(
+                    os.path.join(parts_dir, f),
+                    arcname=f
+                )
+
+        progress_map[job_id] = 100
+
+    except Exception as e:
+
+        print("❌ Split error:", e)
+        progress_map[job_id] = -1
+
+
+# ================= START SPLIT API =================
+@router.post("/pdf/split-range")
+async def split_pdf(
+    file: UploadFile = File(...),
+    ranges: str = Form(...)
+):
+
+    job_id = str(uuid.uuid4())
+
+    job_dir = os.path.join(BASE_TMP, job_id)
+    os.makedirs(job_dir, exist_ok=True)
+
+    pdf_path = os.path.join(job_dir, "input.pdf")
+
+    try:
+
+        with open(pdf_path, "wb") as f:
+            f.write(await file.read())
 
         reader = PdfReader(pdf_path)
         total_pages = len(reader.pages)
-        parsed = parse_ranges(ranges)
 
-        total_steps = sum((min(e, total_pages) - s + 1) for s, e in parsed)
-        done = 0
+        parsed_ranges = parse_ranges(ranges, total_pages)
 
-        for start, end in parsed:
-            writer = PdfWriter()
-            for p in range(start - 1, min(end, total_pages)):
-                writer.add_page(reader.pages[p])
-                done += 1
-                progress_store[job_id] = int((done / total_steps) * 80) + 10
+    except ValueError as e:
 
-            out_pdf = os.path.join(out_dir, f"range_{start}_{end}.pdf")
-            with open(out_pdf, "wb") as f:
-                writer.write(f)
+        shutil.rmtree(job_dir, ignore_errors=True)
 
-        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for f in sorted(os.listdir(out_dir)):
-                zipf.write(os.path.join(out_dir, f), arcname=f)
-
-        progress_store[job_id] = 100
-        job_status[job_id] = "completed"
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
 
     except Exception as e:
-        print("❌ Split failed:", e)
-        progress_store[job_id] = 100
-        job_status[job_id] = "completed"
 
+        shutil.rmtree(job_dir, ignore_errors=True)
 
-# ===============================
-# START SPLIT API
-# ===============================
-@router.post("/pdf-split")
-async def pdf_split(file: UploadFile = File(...), ranges: str = Form(...)):
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(400, "Only PDF allowed")
+        raise HTTPException(
+            status_code=500,
+            detail="PDF processing failed"
+        )
 
-    job_id = str(uuid.uuid4())
-    pdf_path = os.path.join(UPLOAD_DIR, f"{job_id}.pdf")
-
-    with open(pdf_path, "wb") as f:
-        f.write(await file.read())
-
-    progress_store[job_id] = 0
+    progress_map[job_id] = 0
     job_created_at[job_id] = time.time()
-    job_status[job_id] = "processing"
 
     threading.Thread(
-        target=split_worker,
-        args=(job_id, pdf_path, ranges),
+        target=split_pdf_job,
+        args=(job_id, pdf_path, parsed_ranges),
         daemon=True
     ).start()
 
     return {
         "job_id": job_id,
-        "progress_url": f"/events/pdf-split-progress/{job_id}",
-        "download_url": f"/download-split/{job_id}"
+        "progress_url": f"/pdf/split/progress/{job_id}",
+        "download_url": f"/pdf/split/download/{job_id}"
     }
 
 
-# ===============================
-# SSE PROGRESS (BEST PRACTICE)
-# ===============================
-@router.get("/events/pdf-split-progress/{job_id}")
-async def split_progress(job_id: str):
+# ================= SSE PROGRESS =================
+@router.get("/pdf/split/progress/{job_id}")
+def progress_sse(job_id: str):
 
-    async def event_generator():
-        last = -1
+    def stream():
+
+        last = None
+
         while True:
-            p = progress_store.get(job_id, 0)
-            if p != last:
-                yield f"data: {json.dumps({'progress': p})}\n\n"
-                last = p
-            if p >= 100:
+
+            val = progress_map.get(job_id)
+
+            if val is None:
                 break
-            await asyncio.sleep(0.3)
+
+            if val != last:
+                yield f"data: {val}\n\n"
+                last = val
+
+            if val >= 100 or val < 0:
+                break
+
+            time.sleep(1)
 
     return StreamingResponse(
-        event_generator(),
+        stream(),
         media_type="text/event-stream"
     )
 
 
-# ===============================
-# CLEANUP JOB
-# ===============================
-def cleanup_job(job_id: str):
-    time.sleep(2)  # allow download to finish
+# ================= DOWNLOAD =================
+@router.get("/pdf/split/download/{job_id}")
+def download_zip(job_id: str, name: str = "chapter"):
 
-    paths = [
-        os.path.join(UPLOAD_DIR, f"{job_id}.pdf"),
-        os.path.join(OUTPUT_DIR, f"{job_id}_split"),
-        os.path.join(OUTPUT_DIR, f"{job_id}_split.zip"),
-    ]
+    job_dir = os.path.join(BASE_TMP, job_id)
+    parts_dir = os.path.join(job_dir, "parts")
 
-    for p in paths:
-        if os.path.exists(p):
-            if os.path.isdir(p):
-                shutil.rmtree(p)
-            else:
-                os.remove(p)
-
-    progress_store.pop(job_id, None)
-    job_created_at.pop(job_id, None)
-    job_status.pop(job_id, None)
-
-
-# ===============================
-# TTL AUTO CLEANUP (SAFE)
-# ===============================
-def ttl_cleanup_worker():
-    while True:
-        now = time.time()
-        for job_id in list(job_created_at.keys()):
-            if (
-                job_status.get(job_id) == "completed"
-                and now - job_created_at[job_id] > TTL_SECONDS
-            ):
-                cleanup_job(job_id)
-        time.sleep(300)  # every 5 mins
-
-
-threading.Thread(target=ttl_cleanup_worker, daemon=True).start()
-
-
-# ===============================
-# DOWNLOAD + AUTO DELETE
-# ===============================
-@router.get("/download-split/{job_id}")
-def download_split(job_id: str, background_tasks: BackgroundTasks):
-    zip_path = os.path.join(OUTPUT_DIR, f"{job_id}_split.zip")
-
-    if not os.path.exists(zip_path):
+    if not os.path.exists(parts_dir):
         raise HTTPException(404, "File expired or not ready")
 
-    background_tasks.add_task(cleanup_job, job_id)
+    final_zip = os.path.join(job_dir, f"{name}.zip")
+
+    try:
+
+        with zipfile.ZipFile(final_zip, "w", zipfile.ZIP_DEFLATED) as zipf:
+
+            for idx, f in enumerate(sorted(os.listdir(parts_dir))):
+
+                zipf.write(
+                    os.path.join(parts_dir, f),
+                    arcname=f"{name}{idx+1:02d}.pdf"
+                )
+
+    except Exception:
+        raise HTTPException(500, "Zip creation failed")
+
+    # ================= CLEANUP =================
+    def cleanup():
+
+        time.sleep(10)
+
+        try:
+
+            shutil.rmtree(job_dir, ignore_errors=True)
+
+            progress_map.pop(job_id, None)
+            job_created_at.pop(job_id, None)
+
+            print(f"🧹 Job cleaned: {job_id}")
+
+        except Exception as e:
+            print("Cleanup error:", e)
+
+    threading.Thread(target=cleanup, daemon=True).start()
 
     return FileResponse(
-        zip_path,
+        final_zip,
         media_type="application/zip",
-        filename="pdf_split.zip",
-        headers={
-            "X-Job-Completed": "true"  # FE reset signal
-        }
+        filename=f"{name}.zip"
     )

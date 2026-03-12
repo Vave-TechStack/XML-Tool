@@ -1,5 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pdf2docx import Converter
 import os, uuid
 
@@ -34,7 +34,7 @@ async def pdf_to_word_text_based(background_tasks: BackgroundTasks, file: Upload
     with open(pdf_path, "wb") as f:
         f.write(await file.read())
 
-    # 2. Perform the strict layout conversion
+    # 2. Perform conversion
     try:
         cv = Converter(pdf_path)
         cv.convert(docx_path)
@@ -43,14 +43,12 @@ async def pdf_to_word_text_based(background_tasks: BackgroundTasks, file: Upload
         cleanup_files(pdf_path, docx_path)
         raise HTTPException(500, f"Conversion failed: {str(e)}")
 
-    # 3. Schedule absolute cleanup the millisecond the response successfully transmits
-    background_tasks.add_task(cleanup_files, pdf_path, docx_path)
-
-    # 4. Stream the pure document back to the frontend
-    # Note: `FileResponse` will wait until the file is fully downloaded by the client
-    # before executing the background tasks!
+    # 3. Return the file using FileResponse (stable for Windows/Browser downloads)
+    # The global TTL worker in main.py will clean this up after 30 minutes.
+    filename = file.filename.replace(".pdf", ".docx").replace(".PDF", ".docx")
+    
     return FileResponse(
         docx_path,
-        filename=file.filename.replace(".pdf", ".docx").replace(".PDF", ".docx"),
-        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        filename=filename
     )
