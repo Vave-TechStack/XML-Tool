@@ -1,4 +1,5 @@
 'use client';
+import { customFetch } from '@/utils/customFetch';
 import { useState, useRef } from 'react';
 
 const API = 'http://127.0.0.1:8000';
@@ -18,7 +19,7 @@ export default function PdfToXml() {
     const fd = new FormData();
     fd.append('file', file);
 
-    const res = await fetch(`${API}/tools/pdf-to-xml`, {
+    const res = await customFetch(`${API}/tools/pdf-to-xml`, {
       method: 'POST',
       body: fd,
     });
@@ -30,7 +31,7 @@ export default function PdfToXml() {
 
   const pollProgress = (jobId: string) => {
     const i = setInterval(async () => {
-      const r = await fetch(`${API}/tools/progress/${jobId}`);
+      const r = await customFetch(`${API}/tools/progress/${jobId}`);
       const d = await r.json();
       setProgress(d.progress);
       if (d.progress === 100) {

@@ -1,4 +1,5 @@
 'use client';
+import { customFetch } from '@/utils/customFetch';
 
 import { useState, useRef } from 'react';
 
@@ -26,7 +27,7 @@ export default function PdfToTiffPage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch('http://127.0.0.1:8000/pdf-to-tiff', {
+      const res = await customFetch('http://127.0.0.1:8000/pdf-to-tiff', {
         method: 'POST',
         body: formData,
       });

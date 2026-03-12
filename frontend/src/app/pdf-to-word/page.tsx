@@ -1,4 +1,5 @@
 'use client';
+import { customFetch } from '@/utils/customFetch';
 
 import { useState, useRef } from 'react';
 
@@ -23,7 +24,7 @@ export default function PdfToWordPage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch('http://127.0.0.1:8000/pdf-to-word', {
+      const res = await customFetch('http://127.0.0.1:8000/pdf-to-word', {
         method: 'POST',
         body: formData,
       });
@@ -32,12 +33,13 @@ export default function PdfToWordPage() {
         throw new Error('Backend conversion failed');
       }
 
-      const data = await res.json();
+      // Read the response as a pure file stream
+      const blob = await res.blob();
+      
+      // Create a local browser URL pointer to the stream
+      const url = window.URL.createObjectURL(blob);
+      setDownloadUrl(url);
 
-      // ✅ backend returns: { download_id: "uuid" }
-      setDownloadUrl(
-        `http://127.0.0.1:8000/download-word/${data.download_id}`
-      );
     } catch (error) {
       console.error(error);
       alert('Failed to convert PDF. Please try again.');
@@ -49,6 +51,9 @@ export default function PdfToWordPage() {
   /* ================= RESET AFTER DOWNLOAD ================= */
   const resetUpload = () => {
     setFile(null);
+    if (downloadUrl) {
+      window.URL.revokeObjectURL(downloadUrl);
+    }
     setDownloadUrl('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -116,6 +121,7 @@ export default function PdfToWordPage() {
           {/* Native browser download (SAFE) */}
           <a
             href={downloadUrl}
+            download={file ? file.name.replace('.pdf', '.docx').replace('.PDF', '.docx') : 'converted.docx'}
             style={styles.downloadLink}
             onClick={resetUpload}
           >

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { customFetch } from '@/utils/customFetch';
 
 export default function PdfSplitPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -33,7 +34,7 @@ export default function PdfSplitPage() {
       formData.append('file', file);
       formData.append('ranges', ranges);
 
-      const res = await fetch('http://127.0.0.1:8000/pdf-split', {
+      const res = await customFetch('http://127.0.0.1:8000/pdf-split', {
         method: 'POST',
         body: formData,
       });

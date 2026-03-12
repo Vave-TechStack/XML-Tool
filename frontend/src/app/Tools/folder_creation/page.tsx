@@ -1,4 +1,5 @@
 'use client';
+import { customFetch } from '@/utils/customFetch';
 
 import { useState } from 'react';
 
@@ -16,7 +17,7 @@ export default function FolderCreationPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/folder_creator', {
+      const res = await customFetch('http://127.0.0.1:8000/folder_creator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

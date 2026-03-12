@@ -3,9 +3,21 @@
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import { LogOut, LayoutDashboard, ShieldAlert } from 'lucide-react';
+import { useEffect } from 'react';
 
 export default function Navbar() {
-  const { user, logout } = useAuthStore();
+  const { user, logout, checkAuth } = useAuthStore();
+
+  // Poll the server periodically to ensure the session hasn't been invalidated by another device
+  useEffect(() => {
+    if (!user) return;
+    
+    const intervalId = setInterval(() => {
+      checkAuth();
+    }, 10000); // Check every 10 seconds
+
+    return () => clearInterval(intervalId);
+  }, [user, checkAuth]);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm transition-all h-16 flex items-center">

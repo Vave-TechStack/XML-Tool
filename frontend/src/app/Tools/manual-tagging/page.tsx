@@ -1,4 +1,5 @@
 'use client';
+import { customFetch } from '@/utils/customFetch';
 
 import { useRef, useState } from 'react';
 
@@ -21,7 +22,7 @@ export default function ManualLnXmlUploadPage() {
       const fd = new FormData();
       fd.append('file', file);
 
-      const res = await fetch('http://127.0.0.1:8000/ln-xml/manual-upload', {
+      const res = await customFetch('http://127.0.0.1:8000/ln-xml/manual-upload', {
         method: 'POST',
         body: fd,
       });

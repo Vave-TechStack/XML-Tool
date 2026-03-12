@@ -1,4 +1,5 @@
 'use client';
+import { customFetch } from '@/utils/customFetch';
 
 import { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
@@ -19,7 +20,7 @@ export default function ImageCropTool() {
     const fd = new FormData();
     fd.append('file', file);
 
-    const res = await fetch('http://127.0.0.1:8000/tools/image-crop/preview', {
+    const res = await customFetch('http://127.0.0.1:8000/tools/image-crop/preview', {
       method: 'POST',
       body: fd,
     });
@@ -37,7 +38,7 @@ export default function ImageCropTool() {
     fd.append('width', Math.round(croppedArea.width).toString());
     fd.append('height', Math.round(croppedArea.height).toString());
 
-    const res = await fetch('http://127.0.0.1:8000/tools/image-crop', {
+    const res = await customFetch('http://127.0.0.1:8000/tools/image-crop', {
       method: 'POST',
       body: fd,
     });

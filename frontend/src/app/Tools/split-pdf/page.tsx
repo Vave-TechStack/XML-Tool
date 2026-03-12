@@ -1,3 +1,4 @@
+import { customFetch } from '@/utils/customFetch';
 "use client";
 
 import { useState, useRef } from "react";
@@ -29,7 +30,7 @@ export default function PdfSplitByRangePage() {
     fd.append("file", file);
     fd.append("ranges", ranges);
 
-    const res = await fetch(`${API}/pdf/split-range`, {
+    const res = await customFetch(`${API}/pdf/split-range`, {
       method: "POST",
       body: fd,
     });

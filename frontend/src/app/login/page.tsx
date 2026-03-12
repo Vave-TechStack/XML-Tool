@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import { Lock, Mail, ArrowRight } from 'lucide-react';
 
@@ -115,8 +116,14 @@ export default function LoginPage() {
             </button>
           </form>
           
-          <div className="mt-6 text-center text-sm text-slate-500">
-            For access requests, please contact your administrator.
+          <div className="mt-6 flex flex-col items-center space-y-2 text-sm text-slate-500">
+            <p>
+              Don't have an account?{' '}
+              <Link href="/register" className="text-sky-500 hover:text-sky-600 font-medium transition-colors">
+                Request Access
+              </Link>
+            </p>
+            <p>For additional support, please contact your administrator.</p>
           </div>
         </div>
       </div>

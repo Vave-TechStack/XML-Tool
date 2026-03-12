@@ -59,10 +59,14 @@ anyio==4.3.0
 typing-extensions==4.11.0
 
 # =================================================
-# Database & Authentication
+# Auth & Security
 # =================================================
-SQLAlchemy>=2.0.29
-bcrypt>=4.1.2
+pyjwt==2.8.0
+passlib==1.7.4
+bcrypt==4.1.2
+
+# PDF processing libraries
+pdf2docx==0.5.8
 PyJWT>=2.8.0
 
 # =================================================

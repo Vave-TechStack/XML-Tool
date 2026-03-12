@@ -37,6 +37,10 @@ def create_user(
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
         
+    # Prevent creating another Super Admin
+    if user_data.role == UserRole.SUPERADMIN:
+        raise HTTPException(status_code=400, detail="Cannot create multiple Super Admin accounts")
+        
     hashed_pwd = hash_password(user_data.password)
     
     new_user = User(
@@ -59,3 +63,45 @@ def get_users(
 ):
     users = db.query(User).all()
     return users
+
+class ApproveUserRequest(BaseModel):
+    role: UserRole
+
+@router.put("/users/{user_id}/approve")
+def approve_user(
+    user_id: int,
+    request: ApproveUserRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_superadmin)
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    user.is_active = True
+    user.role = request.role
+    
+    # If the user is assigned EMPLOYEE, giving them free access:
+    if request.role == UserRole.EMPLOYEE:
+        user.subscription_active = True 
+        
+    db.commit()
+    return {"message": f"User {user.email} has been approved as {request.role}."}
+
+@router.delete("/users/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_superadmin)
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    # Prevent deleting the super admin
+    if user.role == UserRole.SUPERADMIN:
+        raise HTTPException(status_code=400, detail="Cannot delete the Super Admin account")
+        
+    db.delete(user)
+    db.commit()
+    return {"message": f"User {user.email} has been deleted."}

@@ -1,3 +1,4 @@
+import { customFetch } from '@/utils/customFetch';
 "use client";
 
 import { useState } from "react";
@@ -115,7 +116,7 @@ export default function PdfToXhtmlPage() {
       formData.append("type", sub);
       formData.append("file", file);
 
-      const res = await fetch("http://localhost:8000/build", {
+      const res = await customFetch("http://localhost:8000/build", {
         method: "POST",
         body: formData,
       });

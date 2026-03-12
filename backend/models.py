@@ -18,3 +18,6 @@ class User(Base):
     # Status flags
     is_active = Column(Boolean, default=True)
     subscription_active = Column(Boolean, default=False)
+    
+    # Session Management
+    active_session_token = Column(String, nullable=True)

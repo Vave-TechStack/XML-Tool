@@ -1,4 +1,5 @@
 'use client';
+import { customFetch } from '@/utils/customFetch';
 import { useState, useEffect } from 'react';
 
 const TAGS = ['p', 'h2', 'h3'];
@@ -10,14 +11,14 @@ export default function XmlEditor() {
   const [selection, setSelection] = useState<{start:number,end:number}|null>(null);
 
   useEffect(() => {
-    fetch(`http://127.0.0.1:8000/xml/job/${jobId}/page/${page}`)
+    customFetch(`http://127.0.0.1:8000/xml/job/${jobId}/page/${page}`)
       .then(r => r.json())
       .then(d => setText(d.text));
   }, [page, jobId]);
 
   const applyTag = async (tag: string) => {
     if (!selection) return;
-    await fetch(`http://127.0.0.1:8000/xml/job/${jobId}/annotate`, {
+    await customFetch(`http://127.0.0.1:8000/xml/job/${jobId}/annotate`, {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ page, tag, ...selection })
@@ -58,7 +59,7 @@ export default function XmlEditor() {
 
       {/* Generate */}
       <button onClick={()=>{
-        fetch(`http://127.0.0.1:8000/xml/job/${jobId}/generate`)
+        customFetch(`http://127.0.0.1:8000/xml/job/${jobId}/generate`)
       }}>
         Generate XML
       </button>

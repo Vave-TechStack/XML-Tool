@@ -74,6 +74,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     """Extract and validate the user from the JWT token"""
     payload = decode_access_token(token)
     email: str = payload.get("sub")
+    session_token: str = payload.get("session")
     
     if email is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token subject")
@@ -84,6 +85,13 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user account")
+        
+    # Validate Single Active Session mechanism
+    if user.active_session_token and user.active_session_token != session_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="Session invalidated. You logged in from another device."
+        )
         
     return user
 

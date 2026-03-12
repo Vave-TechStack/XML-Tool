@@ -1,4 +1,5 @@
 'use client';
+import { customFetch } from '@/utils/customFetch';
 import { useState, useRef, useEffect } from 'react';
 
 /* ================= CONFIG ================= */
@@ -305,7 +306,7 @@ export default function LnXmlEditor() {
     const fd = new FormData();
     fd.append('file', file);
 
-    const res = await fetch(`${API_BASE}/lnxml/upload`, { method: 'POST', body: fd });
+    const res = await customFetch(`${API_BASE}/lnxml/upload`, { method: 'POST', body: fd });
     const data = await res.json();
 
     setJobId(data.job_id);
@@ -340,7 +341,7 @@ export default function LnXmlEditor() {
     setPages(copy);
 
     // 🔥 SAVE TO BACKEND
-    await fetch(`${API_BASE}/lnxml/tag`, {
+    await customFetch(`${API_BASE}/lnxml/tag`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -358,7 +359,7 @@ export default function LnXmlEditor() {
   /* ================= GENERATE ================= */
 
 const generate = async () => {
-  const res = await fetch(`${API_BASE}/lnxml/generate`, {
+  const res = await customFetch(`${API_BASE}/lnxml/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ job_id: jobId }),

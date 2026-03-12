@@ -47,6 +47,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const userData = await res.json();
         set({ user: userData, token });
       } else {
+        // Token was invalidated by backend (likely another device login)
         get().logout();
       }
     } catch (error) {

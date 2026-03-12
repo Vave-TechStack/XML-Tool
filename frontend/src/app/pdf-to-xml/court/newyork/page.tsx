@@ -1,4 +1,5 @@
 'use client';
+import { customFetch } from '@/utils/customFetch';
 import { useState, useRef } from 'react';
 
 /* ================= TAG DEFINITIONS ================= */
@@ -194,7 +195,7 @@ export default function LnXmlEditor() {
     const fd = new FormData();
     fd.append('file', file);
 
-    const res = await fetch('http://127.0.0.1:8000/lnxml/upload', {
+    const res = await customFetch('http://127.0.0.1:8000/lnxml/upload', {
       method: 'POST',
       body: fd,
     });
@@ -240,7 +241,7 @@ export default function LnXmlEditor() {
     setPages(copy);
 
     /* optional backend save */
-    await fetch('http://127.0.0.1:8000/lnxml/tag', {
+    await customFetch('http://127.0.0.1:8000/lnxml/tag', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -277,7 +278,7 @@ export default function LnXmlEditor() {
   /* ================= GENERATE ================= */
 
   const generate = async () => {
-    const res = await fetch('http://127.0.0.1:8000/lnxml/generate', {
+    const res = await customFetch('http://127.0.0.1:8000/lnxml/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ job_id: jobId }),

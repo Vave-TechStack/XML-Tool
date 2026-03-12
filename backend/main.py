@@ -20,11 +20,16 @@ Base.metadata.create_all(bind=engine)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create a default superadmin if one doesn't exist
+    # Enforce Single Super Admin and use Env Vars
     db = SessionLocal()
-    admin_email = "admin@vavetechstack.com"
-    if not db.query(User).filter(User.email == admin_email).first():
-        hashed_pwd = hash_password("admin123")
+    admin_email = os.environ.get("SUPERADMIN_EMAIL", "admin@vavetechstack.com")
+    admin_password = os.environ.get("SUPERADMIN_PASSWORD", "admin123")
+    
+    # Check if ANY Super Admin exists
+    super_admin_exists = db.query(User).filter(User.role == UserRole.SUPERADMIN).first()
+    
+    if not super_admin_exists:
+        hashed_pwd = hash_password(admin_password)
         db.add(User(
             email=admin_email, 
             hashed_password=hashed_pwd, 
@@ -56,7 +61,7 @@ app.mount("/temp_jobs", StaticFiles(directory="temp_jobs"), name="temp_jobs")
 
 # Import Routers
 from routes import (
-    pdf_to_tiff, pdf_to_word, pdf_split, ocr_preview, 
+    pdf_to_tiff, pdf_to_word_text, pdf_split, ocr_preview, 
     ln_xml_manual, image_crop, pdf_to_xml, auth_routes, admin_routes
 )
 from routes.ln_xml import router as ln_xml_router
@@ -80,7 +85,7 @@ app.include_router(admin_routes.router)
 # 2. Include Tool Routers with Protection Dependency
 secure = [Depends(require_active_access)]
 
-app.include_router(pdf_to_word.router, dependencies=secure)
+app.include_router(pdf_to_word_text.router, dependencies=secure)
 app.include_router(pdf_to_tiff.router, dependencies=secure)
 app.include_router(pdf_split.router, dependencies=secure)
 app.include_router(ocr_preview.router, dependencies=secure)

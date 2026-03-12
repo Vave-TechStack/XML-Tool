@@ -1,4 +1,5 @@
 'use client';
+import { customFetch } from '@/utils/customFetch';
 
 import { useState, useRef } from 'react';
 
@@ -20,7 +21,7 @@ export default function OCRPage() {
     const fd = new FormData();
     files.forEach(f => fd.append('files', f));
 
-    const res = await fetch('http://127.0.0.1:8000/ocr/process', {
+    const res = await customFetch('http://127.0.0.1:8000/ocr/process', {
       method: 'POST',
       body: fd,
     });
