@@ -16,6 +16,10 @@
 # next.js
 /.next/
 /out/
+<<<<<<< main
+=======
+/xyz/
+>>>>>>> local
 
 # production
 /build
