@@ -10,7 +10,7 @@ export default function PdfSplitPage() {
   const [progress, setProgress] = useState(0);
   const [jobId, setJobId] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState('');
-
+  
   const eventSourceRef = useRef<EventSource | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
